@@ -1,10 +1,15 @@
 local M = {}
 
+local function git_call(command, ...)
+    local res = vim.fn.system({'git', command, ...})
+    return res:gsub('%s*$', '')
+end
+
 local function origin_url(view_type, path)
-    local hash = vim.fn.system({'git', 'rev-parse', '@~1'}):gsub('%s*$', '')
-    local git_info = vim.call('FugitiveRemote', 'origin')
-    local git_dir = git_info.git_dir:gsub('/.git$', '')
-    local base_url = git_info.url:gsub('.git$', '/'..view_type..'/'..hash)
+    local hash = git_call('rev-parse', '@~1')
+    local git_dir = git_call('rev-parse', '--show-toplevel')
+    local orig_url = git_call('remote', 'get-url', 'origin')
+    local base_url = orig_url:gsub('.git$', '/'..view_type..'/'..hash)
     return path:gsub(git_dir, base_url)
 end
 
@@ -15,7 +20,7 @@ local function netrw_line()
     end
 end
 
-function M.open_github(view_type)
+function M.open_origin(view_type)
     local path
     if vim.bo.filetype == 'netrw' then
         path = vim.fn.getcwd()
@@ -29,11 +34,11 @@ function M.open_github(view_type)
     return vim.fn.system({'open', url})
 end
 
-function M.open_github_blame()
-    return M.open_github('blame')
+function M.open_origin_blame()
+    return M.open_origin('blame')
 end
 
-function M.open_github_tree()
+function M.open_origin_tree()
     local path
     if vim.bo.filetype == 'netrw' then
         path = vim.fn.getcwd()
