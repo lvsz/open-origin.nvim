@@ -23,6 +23,14 @@ local function git_call(command, ...)
     return res:gsub('%s*$', '')
 end
 
+local function prefix_sub(s, prefix, repl)
+    local i = 1
+    while s:byte(i) == prefix:byte(i) do
+        i = i + 1
+    end
+    return repl .. s:sub(i)
+end
+
 local function origin_url(view_type, path)
     local orig_url = git_call('remote', 'get-url', 'origin')
     local base_url = orig_url:gsub('.git$', '/' .. view_type .. '/')
@@ -31,7 +39,7 @@ local function origin_url(view_type, path)
     else
         local git_dir = git_call('rev-parse', '--show-toplevel')
         local commit_hash = git_call('rev-parse', '@~1')
-        return path:gsub(git_dir, base_url .. commit_hash)
+        return prefix_sub(path, git_dir, base_url .. commit_hash)
     end
 end
 
@@ -40,6 +48,11 @@ local function netrw_line()
     if path:match('%w+/$') then
         return 'TODO'
     end
+end
+
+local function action_open(url)
+    vim.notify('Opening ' .. url, 1)
+    return vim.fn.system({'open', url})
 end
 
 function M.open_origin(view_type)
@@ -53,7 +66,7 @@ function M.open_origin(view_type)
         view_type = view_type or 'blob'
     end
     local url = origin_url(view_type, path)
-    return vim.fn.system({'open', url})
+    return action_open(url)
 end
 
 function M.open_origin_blame()
@@ -68,10 +81,10 @@ function M.open_origin_tree()
         path = vim.fn.expand('%:p:h')
     end
     local url = origin_url('tree', path)
-    return vim.fn.system({'open', url})
+    return action_open(url)
 end
 
-function M.open_origin_hash()
+function M.open_origin_commit()
     local line = a.nvim_get_current_line()
     local lnum, tnum = unpack(a.nvim_win_get_cursor(0))
     local cursor_word, word_col = get_cursor_word(line, tnum)
@@ -80,7 +93,7 @@ function M.open_origin_hash()
         commit_hash = cursor_word
     else
         commit_hash = ''
-        for hash in line:gmatch( '[A-Fa-f0-9]+') do
+        for hash in line:gmatch('[A-Fa-f0-9]+') do
             if #hash > #commit_hash then
                 commit_hash = hash
             end
@@ -108,7 +121,7 @@ function M.open_origin_hash()
             end,
             M.ns
         )
-        return vim.fn.system({'open', url})
+        return action_open(url)
     else
         local msg = "No valid commit hash detected"
         local diagnostics = {}
