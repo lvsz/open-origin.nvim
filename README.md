@@ -8,9 +8,9 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim)
 
 ```lua
 -- nvim/init.lua
-require('lazy').setup({
+require("lazy").setup({
     ...
-    'lvsz/open-origin.nvim',
+    "lvsz/open-origin.nvim",
     ...
 })
 ```
@@ -19,8 +19,9 @@ require('lazy').setup({
 
 ```lua
 -- nvim/after/plugin/open-origin.lua
-local open_origin = require'open-origin'
-vim.keymap.set('n', '<leader>K', open_origin.open_origin)
-vim.keymap.set('n', '<leader>T', open_origin.open_origin_tree)
-vim.keymap.set('n', '<leader>B', open_origin.open_origin_blame)
+local oo = require("open-origin")
+vim.keymap.set("n", "<leader>oo", oo.open_origin)
+vim.keymap.set("n", "<leader>ob", oo.open_origin_blame)
+vim.keymap.set("n", "<leader>oc", oo.open_origin_commit)
+vim.keymap.set("n", "<leader>ot", oo.open_origin_tree)
 ```
