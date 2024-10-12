@@ -1,46 +1,10 @@
+local util = require "open-origin.util"
+
 local M = {
     ns = vim.api.nvim_create_namespace("open-origin"),
 }
 
 local unpack = unpack or table.unpack
-
-local function get_cursor_word(line, tnum)
-    local word_start = 1
-    for i = 1, #line do
-        if i > tnum then
-            break
-        elseif line:sub(i, i):find("%s") then
-            word_start = i + 1
-        end
-    end
-    local word_end = line:find("%s", word_start)
-    return line:sub(word_start, word_end and word_end - 1), word_start
-end
-
-local function git_call(command, ...)
-    local res = vim.fn.system({ "git", command, ... })
-    return res:gsub("%s*$", "")
-end
-
-local function prefix_sub(s, prefix, repl)
-    local i = 1
-    while s:byte(i) == prefix:byte(i) do
-        i = i + 1
-    end
-    return repl .. s:sub(i)
-end
-
-local function origin_url(view_type, path)
-    local orig_url = git_call("remote", "get-url", "origin")
-    local base_url = orig_url:gsub(".git$", "/" .. view_type .. "/")
-    if view_type == "commit" then
-        return base_url .. path
-    else
-        local git_dir = git_call("rev-parse", "--show-toplevel")
-        local commit_hash = git_call("rev-parse", "@~1")
-        return prefix_sub(path, git_dir, base_url .. commit_hash)
-    end
-end
 
 local function action_open(url)
     vim.notify("Opening " .. url, 1)
@@ -57,7 +21,7 @@ function M.open_origin(view_type)
         path = vim.api.nvim_buf_get_name(0) .. linenr
         view_type = view_type or "blob"
     end
-    local url = origin_url(view_type, path)
+    local url = util.origin_url(view_type, path)
     return action_open(url)
 end
 
@@ -72,14 +36,14 @@ function M.open_origin_tree()
     else
         path = vim.fn.expand("%:p:h")
     end
-    local url = origin_url("tree", path)
+    local url = util.origin_url("tree", path)
     return action_open(url)
 end
 
 function M.open_origin_commit()
     local line = vim.api.nvim_get_current_line()
     local lnum, tnum = unpack(vim.api.nvim_win_get_cursor(0))
-    local cursor_word, word_col = get_cursor_word(line, tnum)
+    local cursor_word, word_col = util.get_cursor_word(line, tnum)
     local commit_hash
     if cursor_word:match("^[A-Fa-f0-9]+$") then
         commit_hash = cursor_word
@@ -92,7 +56,7 @@ function M.open_origin_commit()
         end
     end
     if #commit_hash >= 7 then
-        local url = origin_url("commit", commit_hash)
+        local url = util.origin_url("commit", commit_hash)
         return action_open(url)
     else
         local msg = "No valid commit hash detected"
